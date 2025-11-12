@@ -3,5 +3,8 @@
 /r/:country/:type/:id  /.netlify/functions/microsite-meta?path=/r/:country/:type/:id  200!
 /pay/:id/*  /.netlify/functions/microsite-meta  200!
 
+# Fallback: redirect /pay/:id (without subpath) to meta.html for OG tags
+/pay/:id  /meta.html  200!
+
 # Default SPA redirect - comes last
 /*    /index.html   200

@@ -2,11 +2,37 @@
   publish = "dist"
   command = "npm run build"
 
-[context.production]
-  site = "nfp_ccsFPmt165aa1zwVVSM8JgENK5EdnPA312ff"
-
-# Note: Redirects are handled in public/_redirects file
 # Payment pages redirect to Netlify Function for proper meta tags (bots read HTML before JS)
+# These redirects must be processed before the SPA catch-all redirect
+[[redirects]]
+  from = "/r/:country/shipping/:id"
+  to = "/.netlify/functions/microsite-meta?path=/r/:country/shipping/:id"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/r/:country/chalet/:id"
+  to = "/.netlify/functions/microsite-meta?path=/r/:country/chalet/:id"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/pay/:id"
+  to = "/.netlify/functions/microsite-meta?path=/pay/:id"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/pay/:id/*"
+  to = "/.netlify/functions/microsite-meta?path=/pay/:id"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = true
 
 [[headers]]
   for = "/*"

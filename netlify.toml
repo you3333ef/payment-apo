@@ -2,9 +2,6 @@
   publish = "dist"
   command = "npm run build"
 
-[context.production]
-  site = "nfp_ccsFPmt165aa1zwVVSM8JgENK5EdnPA312ff"
-
 # Payment pages redirect to Netlify Function for proper meta tags (bots read HTML before JS)
 # These redirects must be processed before the SPA catch-all redirect
 [[redirects]]

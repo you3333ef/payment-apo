@@ -2,9 +2,9 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-import { copyFileSync, existsSync, cpSync } from "fs";
+import { copyFileSync } from "fs";
 
-// Plugin to copy assets and functions to dist
+// Plugin to copy service worker and _redirects to dist
 const copyAssets = () => ({
   name: "copy-assets",
   writeBundle() {
@@ -19,16 +19,6 @@ const copyAssets = () => ({
       console.log("✅ _redirects file copied to dist");
     } catch (err) {
       console.error("❌ Failed to copy _redirects:", err);
-    }
-    try {
-      if (existsSync("netlify/functions")) {
-        cpSync("netlify/functions", "dist/.netlify/functions", { recursive: true });
-        console.log("✅ Netlify Functions copied to dist");
-      } else {
-        console.log("⚠️  netlify/functions folder not found");
-      }
-    } catch (err) {
-      console.error("❌ Failed to copy Netlify Functions:", err);
     }
   },
 });

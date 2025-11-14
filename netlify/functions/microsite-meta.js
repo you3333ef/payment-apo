@@ -228,7 +228,11 @@ exports.handler = async (event, context) => {
       }
 
       // Redirect to receiver info page
-      const redirectUrl = `${siteUrl}/pay/${id}/recipient`;
+      const queryString = Object.entries(queryParams)
+        .filter(([k]) => k !== 'path')
+        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+        .join('&');
+      const redirectUrl = `${siteUrl}/pay/${id}/recipient${queryString ? '?' + queryString : ''}`;
 
       return {
         statusCode: 200,

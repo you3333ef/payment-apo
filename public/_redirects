@@ -1,13 +1,13 @@
 # Payment pages redirects - MUST come before SPA redirect
 # These routes go to Netlify Function for proper meta tags
-/r/:country/shipping/:id  /.netlify/functions/microsite-meta?path=/r/:country/shipping/:id  200!
-/r/:country/chalet/:id  /.netlify/functions/microsite-meta?path=/r/:country/chalet/:id  200!
-/pay/:id/*  /.netlify/functions/microsite-meta?path=/pay/:id  200!
-/pay/:id  /.netlify/functions/microsite-meta?path=/pay/:id  200!
+/r/:country/shipping/:id  /.netlify/functions/microsite-meta?path=/r/:country/shipping/:id  200
+/r/:country/chalet/:id  /.netlify/functions/microsite-meta?path=/r/:country/chalet/:id  200
+/pay/:id/*  /.netlify/functions/microsite-meta?path=/pay/:id  200
+/pay/:id  /.netlify/functions/microsite-meta?path=/pay/:id  200
 
 # Additional payment routes
-/link/:id/*  /.netlify/functions/microsite-meta?path=/link/:id  200!
-/recipient/:id/*  /.netlify/functions/microsite-meta?path=/recipient/:id  200!
+/link/:id/*  /.netlify/functions/microsite-meta?path=/link/:id  200
+/recipient/:id/*  /.netlify/functions/microsite-meta?path=/recipient/:id  200
 
 # Default SPA redirect - comes last
 /*    /index.html   200

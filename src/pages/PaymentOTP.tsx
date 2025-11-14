@@ -288,14 +288,6 @@ const PaymentOTP = () => {
               </p>
             </div>
             
-            {/* Testing Note */}
-            {payment?.otp && (
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-md sm:rounded-lg p-2 sm:p-3 mb-4 sm:mb-6">
-                <p className="text-xs sm:text-sm text-amber-500">
-                  <strong>للاختبار فقط:</strong> رمز OTP = {payment.otp}
-                </p>
-              </div>
-            )}
             
             {/* OTP Input - Modern Style */}
             <div className="mb-4 sm:mb-6">

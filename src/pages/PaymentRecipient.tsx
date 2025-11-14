@@ -42,6 +42,8 @@ const PaymentRecipient = () => {
   const shippingInfo = linkData?.payload || {};
   const amount = shippingInfo?.cod_amount || shippingInfo?.total_amount || 500;
   const formattedAmount = `${amount} ${linkData?.country_code ? getCountryByCode(linkData.country_code)?.currency || 'ر.س' : 'ر.س'}`;
+  const countryData = linkData?.country_code ? getCountryByCode(linkData.country_code) : undefined;
+  const phoneCode = countryData?.phoneCode || '+966';
   
   const heroImages: Record<string, string> = {
     'aramex': heroAramex,
@@ -241,7 +243,7 @@ const PaymentRecipient = () => {
                       onChange={(e) => setCustomerPhone(e.target.value)}
                       required
                       className="h-10 sm:h-12 text-sm sm:text-base"
-                      placeholder="+966 5X XXX XXXX"
+                      placeholder={`${phoneCode} 5X XXX XXXX`}
                     />
                   </div>
                   

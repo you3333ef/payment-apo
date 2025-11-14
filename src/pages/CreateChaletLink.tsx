@@ -16,6 +16,7 @@ import { getBanksByCountry } from "@/lib/banks";
 import { useChalets, useCreateLink } from "@/hooks/useSupabase";
 import { ArrowRight, Home, Copy, Check, Building2, CreditCard, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getFullUrl } from "@/lib/urlHelper";
 
 const CreateChaletLink = () => {
   const { country } = useParams<{ country: string }>();
@@ -70,7 +71,7 @@ const CreateChaletLink = () => {
         payload,
       });
       
-      setCreatedLink(link.microsite_url);
+      setCreatedLink(getFullUrl(link.microsite_url));
     } catch (error) {
       console.error("Error creating link:", error);
     }

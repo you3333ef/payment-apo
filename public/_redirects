@@ -1,12 +1,2 @@
-# Payment pages redirects - MUST come before SPA redirect
-# These routes go to Netlify Function for proper meta tags
-/r/:country/:type/:id  /.netlify/functions/microsite-meta?path=/r/:country/:type/:id  200!
-/pay/:id/*  /.netlify/functions/microsite-meta?path=/pay/:id/:splat  200!
-/pay/:id  /.netlify/functions/microsite-meta?path=/pay/:id  200!
-
-# Additional payment routes
-/link/:id/*  /.netlify/functions/microsite-meta?path=/link/:id/:splat  200!
-/recipient/:id/*  /.netlify/functions/microsite-meta?path=/recipient/:id/:splat  200!
-
-# Default SPA redirect - comes last
+# SPA fallback redirect
 /*    /index.html   200

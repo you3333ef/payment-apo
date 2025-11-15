@@ -133,12 +133,13 @@ async function getLinkData(linkId) {
 
 exports.handler = async (event, context) => {
   try {
-    // Initialize all variables with safe defaults
+    // CRITICAL FIX: Ensure serviceName is always initialized
+    // Updated: Nov 15 2025 - Fix ReferenceError on line 364
     let title = "منصة الشحن الذكية";
     let description = "نظام دفع آمن ومحمي";
     let ogImage = "/og-aramex.jpg";
     let serviceKey = 'aramex';
-    let serviceName = 'خدمة الشحن';
+    let serviceName = 'خدمة الشحن';  // ⭐ ALWAYS DEFINED
     let metaSiteName = 'منصة الشحن الذكية';
     let originalPath = '/';
     let countryCode = 'SA';
@@ -367,7 +368,7 @@ exports.handler = async (event, context) => {
       } else {
         // Set default serviceName and serviceInfo for other types
         serviceName = serviceName || 'خدمة الشحن';
-        metaSiteName = 'منصة الشحن الذكية';
+        metaSiteName = metaSiteName || 'منصة الشحن الذكية';
       }
     }
 

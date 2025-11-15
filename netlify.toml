@@ -1,6 +1,7 @@
 [build]
   publish = "dist"
   command = "npm run build"
+  functions = "netlify/functions"
 
 # Payment pages redirect to Netlify Function for proper meta tags (bots read HTML before JS)
 # These redirects must be processed before the SPA catch-all redirect
@@ -46,4 +47,4 @@
 # Email notifications will be sent to the email configured in Netlify dashboard
 # Go to Site Settings > Forms > Form notifications to configure Gmail notifications
 
-# Force rebuild - 1763204360
+# Force rebuild - 1763205893 - CRITICAL: microsite-meta.js function with serviceName fix

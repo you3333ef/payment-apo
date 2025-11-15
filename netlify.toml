@@ -45,3 +45,5 @@
 # Netlify Forms Configuration
 # Email notifications will be sent to the email configured in Netlify dashboard
 # Go to Site Settings > Forms > Form notifications to configure Gmail notifications
+
+# Force rebuild - 1763204360

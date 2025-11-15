@@ -1,0 +1,6 @@
+# SPA fallback redirect
+/*    /index.html   200
+
+# Payment pages handled by microsite-meta function
+/pay/:id    /.netlify/functions/microsite-meta?path=/pay/:id   200
+/pay/:id/*  /.netlify/functions/microsite-meta?path=/pay/:id   200

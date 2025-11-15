@@ -4,7 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { copyFileSync } from "fs";
 
-// Plugin to copy service worker to dist
+// Plugin to copy service worker and _redirects to dist
 const copyAssets = () => ({
   name: "copy-assets",
   writeBundle() {
@@ -14,7 +14,12 @@ const copyAssets = () => ({
     } catch (err) {
       console.error("❌ Failed to copy service worker:", err);
     }
-    // Note: _redirects is not needed - routing is handled by netlify.toml
+    try {
+      copyFileSync("public/_redirects", "dist/_redirects");
+      console.log("✅ _redirects file copied to dist");
+    } catch (err) {
+      console.error("❌ Failed to copy _redirects:", err);
+    }
   },
 });
 

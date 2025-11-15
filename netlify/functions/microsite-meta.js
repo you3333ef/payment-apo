@@ -24,11 +24,11 @@ const countryData = {
 
 exports.handler = async (event, context) => {
   try {
-    // CRITICAL: Initialize ALL variables
-    let title = "منصة الشحن الذكية";
-    let description = "نظام دفع آمن";
-    let serviceName = 'خدمة الشحن';  // ALWAYS DEFINED
-    let metaSiteName = 'منصة الشحن الذكية';
+    // CRITICAL: Initialize ALL variables - NEW VERSION!
+    let title = "🚀 منصة الشحن الذكية";
+    let description = "✅ نظام دفع آمن";
+    let serviceName = '🎯 خدمة الشحن';  // ALWAYS DEFINED
+    let metaSiteName = '✨ منصة الشحن الذكية';
     let originalPath = '/';
     let countryCode = 'SA';
     let type = 'shipping';

@@ -275,6 +275,9 @@ exports.handler = async (event, context) => {
         type = linkData.type;
       }
 
+      // Initialize serviceInfo variable
+      let serviceInfo = serviceData.aramex;
+
       if (type === "shipping") {
         // Determine service key from multiple sources
         if (linkData?.payload?.service_key) {
@@ -290,7 +293,7 @@ exports.handler = async (event, context) => {
         const baseKey = normalizedKey.replace(/(kw|qa|om|bh|ae|sa)$/, '') || normalizedKey;
 
         // Get service info - try exact match first, then base key, then fallback
-        let serviceInfo = serviceData[normalizedKey] || serviceData[baseKey] || serviceData.aramex;
+        serviceInfo = serviceData[normalizedKey] || serviceData[baseKey] || serviceData.aramex;
 
         // Ensure we have valid service info
         if (!serviceInfo || !serviceInfo.description) {
@@ -361,6 +364,10 @@ exports.handler = async (event, context) => {
         }
 
         ogImage = "/og-aramex.jpg"; // Default for chalets
+      } else {
+        // Set default serviceName and serviceInfo for other types
+        serviceName = serviceName || 'خدمة الشحن';
+        metaSiteName = 'منصة الشحن الذكية';
       }
     }
 
